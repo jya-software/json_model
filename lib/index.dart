@@ -8,6 +8,7 @@ import 'build_runner.dart' as br;
 // Dart file template
 const tpl =
     "import 'package:json_annotation/json_annotation.dart';\n%t\npart '%s.g.dart';\n\n@JsonSerializable()\nclass %s {\n  %s();\n\n  %s\n  factory %s.fromJson(Map<String,dynamic> json) => _\$%sFromJson(json);\n  Map<String, dynamic> toJson() => _\$%sToJson(this);\n}\n";
+const nullsafe_tpl = "import 'package:json_annotation/json_annotation.dart';\n%t\npart '%s.g.dart';\n\n@JsonSerializable()\nclass %s {\n  %s({\n%s  });\n\n  %s\n  factory %s.fromJson(Map<String,dynamic> json) => _\$%sFromJson(json);\n  Map<String, dynamic> toJson() => _\$%sToJson(this);\n}\n";
 
 void run(List<String> args) {
   String? src;
@@ -122,19 +123,33 @@ bool generateModelClass(
       // comments for Json fields
       final comments = meta['comments'] ?? {};
 
+      final nullsafe = (meta['nullsafe'] ?? true) as bool;
       // Handle fields in Json file
       final StringBuffer fields = StringBuffer();
+      final StringBuffer cparams = StringBuffer();
+
       map.forEach((key, v) {
         key = key.trim();
         if (key.startsWith("_")) return;
+        cparams.write("    ");
         if (key.startsWith("@")) {
           if (comments[v] != null) {
             _writeComments(comments[v],fields);
+          }
+          final isOption = key.contains("?");
+          if(nullsafe && !isOption){
+            fields.write("final ");
           }
           fields.write(key);
           fields.write(" ");
           fields.write(v);
           fields.writeln(";");
+          if(!isOption){
+            cparams.write("required ");
+          }
+          cparams.write("this.");
+          cparams.write(v);
+          cparams.writeln(",");
         } else {
           final bool optionalField = key.endsWith('?');
           final bool notNull = key.endsWith('!');
@@ -148,7 +163,11 @@ bool generateModelClass(
             _writeComments(comments[key],fields);
           }
           if (!shouldAppendOptionalFlag) {
-            fields.write('late ');
+            if(nullsafe){
+              fields.write("final ");
+            } else {
+              fields.write('late ');
+            }
           }
           fields.write(getDataType(v, importSet, fileName, tag));
           if (shouldAppendOptionalFlag) {
@@ -158,12 +177,35 @@ bool generateModelClass(
           fields.write(key);
           //new line
           fields.writeln(";");
+          if(nullsafe){
+            if(!shouldAppendOptionalFlag){
+              cparams.write("required ");
+            }
+            cparams.write("this.");
+            cparams.write(key);
+            cparams.writeln(",");
+          }
         }
         //indent
         fields.write("  ");
       });
 
-      var dist = replaceTemplate(tpl, [
+      String dist;
+      print("nullsafe: $nullsafe");
+      if(nullsafe){
+        dist = replaceTemplate(nullsafe_tpl, [
+          fileName,
+          className,
+          className,
+          cparams.toString(),
+          fields.toString(),
+          className,
+          className,
+          className,
+          cparams.toString()
+        ]);
+      } else {
+       dist = replaceTemplate(tpl, [
         fileName,
         className,
         className,
@@ -171,7 +213,8 @@ bool generateModelClass(
         className,
         className,
         className
-      ]);
+        ]);
+      }
       // Insert the imports at the head of dart file.
       var _import = importSet.join(";\r\n");
       _import += _import.isEmpty ? "" : ";";
