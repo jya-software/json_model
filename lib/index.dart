@@ -103,6 +103,9 @@ bool generateModelClass(
       String? className = meta['className'] as String?;
       if (className == null || className.isEmpty) {
         className = fileName[0].toUpperCase() + fileName.substring(1);
+        // update_info -> UpdateInfo
+        className = className.replaceAllMapped(
+            RegExp(r'_(\w)'), (m) => m[1]!.toUpperCase());
       }
 
       //set ignore

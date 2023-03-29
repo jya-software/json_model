@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "appId": "com.smart.smart",
+  "hasUpdate": true,
+  "url?": "https://download.smart.com/app/Smart.apk",
+  "updateType?": 1,
+  "updateTime?": "2018-01-01 12:00:00",
+  "md5?": "1234567890",
+  "changeLog?": "1.修复了一些bug\n2.优化了一些功能"
+}
