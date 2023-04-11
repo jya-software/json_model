@@ -140,9 +140,6 @@ bool generateModelClass(
             _writeComments(comments[v],fields);
           }
           final isOption = key.contains("?");
-          if(nullsafe && !isOption){
-            fields.write("final ");
-          }
           fields.write(key);
           fields.write(" ");
           fields.write(v);
@@ -261,6 +258,12 @@ bool isBuiltInType(String type) {
   return ['int', 'num', 'string', 'double', 'map', 'list'].contains(type);
 }
 
+String classNameToFileName(String className) {
+  // UpdateInfo -> update_info
+  return className.replaceAllMapped(
+      RegExp(r'([A-Z])'), (m) => "_${m[1]!.toLowerCase()}");
+}
+
 String getDataType(v, Set<String> set, String current, String tag) {
   current = current.toLowerCase();
   if (v is bool) {
@@ -276,11 +279,14 @@ String getDataType(v, Set<String> set, String current, String tag) {
     if (v.startsWith("$tag[]")) {
       final type = changeFirstChar(v.substring(3), false);
       if (type.toLowerCase() != current && !isBuiltInType(type)) {
-        set.add('import "$type.dart"');
+        // set.add('import "$type.dart"');
+        final fileName = classNameToFileName(type);
+        set.add('import "$fileName.dart"');
       }
       return "List<${changeFirstChar(type)}>";
     } else if (v.startsWith(tag)) {
-      final fileName = changeFirstChar(v.substring(1), false);
+      // final fileName = changeFirstChar(v.substring(1), false);
+      final fileName = classNameToFileName(v);
       if (fileName.toLowerCase() != current) {
         set.add('import "$fileName.dart"');
       }
